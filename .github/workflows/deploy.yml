@@ -80,7 +80,10 @@ jobs:
       - name: Install Kustomize (latest)
         run: |
           set -euo pipefail
-          URL="https://github.com/kubernetes-sigs/kustomize/releases/latest/download/kustomize_linux_amd64.tar.gz"
+          TAG=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | jq -r '.tag_name')
+          VER="${TAG#kustomize/}"
+          FILE="kustomize_${VER}_linux_amd64.tar.gz"
+          URL="https://github.com/kubernetes-sigs/kustomize/releases/download/${TAG}/${FILE}"
           echo "Downloading $URL"
           curl -fsSL "$URL" -o /tmp/kustomize.tgz
           tar -tzf /tmp/kustomize.tgz >/dev/null
@@ -92,11 +95,10 @@ jobs:
           set -euo pipefail
           aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
 
-      - name: Ensure prod overlay uses name 'app'
+      - name: Ensure prod overlay exists and uses 'app'
         run: |
           set -euo pipefail
           test -f k8s/overlays/prod/kustomization.yaml || { echo "missing overlays/prod/kustomization.yaml"; exit 1; }
-          grep -q '^images:' -n k8s/overlays/prod/kustomization.yaml || true
           echo "--- overlays/prod/kustomization.yaml ---"
           cat k8s/overlays/prod/kustomization.yaml
 
