@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: <IMAGE_REPOSITORY>:<IMAGE_TAG>   # replaced by CI
+        image: app:latest   # <— Kustomize will replace 'app' with ECR:TAG
         ports:
         - containerPort: 8080
         resources:
