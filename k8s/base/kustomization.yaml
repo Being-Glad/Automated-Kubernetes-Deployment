@@ -1,0 +1,8 @@
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: <IMAGE_REPOSITORY>
+    newTag: <IMAGE_TAG>

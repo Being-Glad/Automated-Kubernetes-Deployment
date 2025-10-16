@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-web
+spec:
+  template:
+    spec:
+      containers:
+        - name: web
+          env:
+            - name: APP_MESSAGE
+              value: "Hello, World — Prod on EKS!"

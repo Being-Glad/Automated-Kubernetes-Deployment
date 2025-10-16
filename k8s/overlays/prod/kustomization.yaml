@@ -1,0 +1,5 @@
+namespace: hello
+resources:
+  - ../../base
+patches:
+  - path: patch-env.yaml
