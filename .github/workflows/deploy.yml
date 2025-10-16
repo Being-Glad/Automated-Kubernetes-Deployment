@@ -44,7 +44,27 @@ jobs:
           IMAGE_SHA: ${{ env.ECR_REPO }}:${{ github.sha }}
           IMAGE_LATEST: ${{ env.ECR_REPO }}:latest
         run: |
-          docker build -t "$IMAGE_SHA" -t "$IMAGE_LATEST" .
+          set -euo pipefail
+          # --- Detect Dockerfile location (subfolder support) ---
+          DF=""
+          CTX=""
+          if [ -f ./app/Dockerfile ]; then
+            DF=./app/Dockerfile
+            CTX=./app
+          elif [ -f ./Dockerfile ]; then
+            DF=./Dockerfile
+            CTX=.
+          else
+            DF=$(find . -maxdepth 3 -name Dockerfile | head -n1 || true)
+            if [ -z "$DF" ]; then
+              echo "ERROR: Dockerfile not found in repo (searched to depth 3)."
+              exit 1
+            fi
+            CTX=$(dirname "$DF")
+          fi
+          echo "Using Dockerfile: $DF"
+          echo "Build context:   $CTX"
+          docker build -f "$DF" -t "$IMAGE_SHA" -t "$IMAGE_LATEST" "$CTX"
           docker push "$IMAGE_SHA"
           docker push "$IMAGE_LATEST"
 
@@ -59,7 +79,6 @@ jobs:
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
 
-      # --- Install kustomize without 3rd-party action ---
       - name: Install Kustomize (curl)
         run: |
           set -euo pipefail
