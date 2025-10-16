@@ -11,7 +11,7 @@ env:
   ECR_REPO: 630398150656.dkr.ecr.ap-south-1.amazonaws.com/hello-eks
 
 permissions:
-  id-token: write    # for OIDC
+  id-token: write
   contents: read
 
 concurrency:
@@ -59,8 +59,16 @@ jobs:
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
 
-      - name: Install Kustomize
-        uses: int128/setup-kustomize@v1
+      # --- Install kustomize without 3rd-party action ---
+      - name: Install Kustomize (curl)
+        run: |
+          set -euo pipefail
+          VER="v5.4.3"
+          url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${VER}/kustomize_${VER#v}_linux_amd64.tar.gz"
+          echo "Downloading $url"
+          curl -sSL "$url" -o /tmp/kustomize.tgz
+          sudo tar -C /usr/local/bin -xzf /tmp/kustomize.tgz kustomize
+          kustomize version
 
       - name: Configure kubectl for EKS
         run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
