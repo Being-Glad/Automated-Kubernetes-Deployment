@@ -79,55 +79,11 @@ jobs:
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
 
-      - name: Install Kustomize (curl)
-        run: |
-          set -euo pipefail
-          VER="v5.4.3"
-          url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${VER}/kustomize_${VER#v}_linux_amd64.tar.gz"
-          echo "Downloading $url"
-          curl -sSL "$url" -o /tmp/kustomize.tgz
-          sudo tar -C /usr/local/bin -xzf /tmp/kustomize.tgz kustomize
-          kustomize version
-
-      - name: Configure kubectl for EKS
-        run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
-
-      - name: Set image in kustomize (prod)
-        working-directory: k8s/overlays/prod
-        env:
-          IMAGE_SHA: ${{ env.ECR_REPO }}:${{ github.sha }}
-        run: |
-          echo "Setting image to: $IMAGE_SHA"
-          kustomize edit set image app="$IMAGE_SHA"
-          kustomize build . | tee /tmp/manifest.yaml
-
-      - name: Apply to cluster (prod overlay)
-        run: kubectl apply -k k8s/overlays/prod
-
-      - name: Confirm image on cluster
-        run: |
-          IMG=$(kubectl -n hello get deploy hello-web -o jsonpath='{.spec.template.spec.containers[0].image}')
-          echo "Deployment image: $IMG"
-
-      - name: Wait for rollout (5 minutes)
-        run: kubectl -n hello rollout status deploy/hello-web --timeout=300s
-
-      - name: Diagnostics on failure
-        if: failure()
-        run: |
-          echo "--- DEPLOYMENT ---"
-          kubectl -n hello get deploy hello-web -o wide || true
-          kubectl -n hello describe deploy hello-web || true
-          echo "--- REPLICASETS ---"
-          kubectl -n hello get rs -l app=hello-web -o wide || true
-          echo "--- PODS ---"
-          kubectl -n hello get pods -l app=hello-web -o wide || true
-          POD=$(kubectl -n hello get pods -l app=hello-web -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
-          if [ -n "$POD" ]; then
-            echo "--- DESCRIBE POD $POD ---"
-            kubectl -n hello describe pod "$POD" | sed -n '1,200p' || true
-            echo "--- LOGS (last 200 lines) ---"
-            kubectl -n hello logs "$POD" --all-containers --tail=200 || true
-          fi
-          echo "--- EVENTS ---"
-          kubectl -n hello get events --sort-by=.lastTimestamp | tail -n 50 || true
+- name: Install Kustomize (official script)
+  run: |
+    set -euo pipefail
+    VER="v5.4.3"
+    curl -fsSL https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh -o /tmp/install_kustomize.sh
+    bash /tmp/install_kustomize.sh ${VER}
+    sudo mv kustomize /usr/local/bin/
+    kustomize version
