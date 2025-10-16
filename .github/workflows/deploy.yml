@@ -21,7 +21,6 @@ concurrency:
 jobs:
   build-scan-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +44,6 @@ jobs:
           IMAGE_LATEST: ${{ env.ECR_REPO }}:latest
         run: |
           set -euo pipefail
-          # --- Detect Dockerfile location (subfolder support) ---
           DF=""
           CTX=""
           if [ -f ./app/Dockerfile ]; then
@@ -57,7 +55,7 @@ jobs:
           else
             DF=$(find . -maxdepth 3 -name Dockerfile | head -n1 || true)
             if [ -z "$DF" ]; then
-              echo "ERROR: Dockerfile not found in repo (searched to depth 3)."
+              echo "ERROR: Dockerfile not found (searched to depth 3)."
               exit 1
             fi
             CTX=$(dirname "$DF")
@@ -79,11 +77,63 @@ jobs:
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
 
-- name: Install Kustomize (official script)
-  run: |
-    set -euo pipefail
-    VER="v5.4.3"
-    curl -fsSL https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh -o /tmp/install_kustomize.sh
-    bash /tmp/install_kustomize.sh ${VER}
-    sudo mv kustomize /usr/local/bin/
-    kustomize version
+      - name: Install Kustomize (official script)
+        run: |
+          set -euo pipefail
+          VER="v5.4.3"
+          curl -fsSL https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh -o /tmp/install_kustomize.sh
+          bash /tmp/install_kustomize.sh "${VER}"
+          sudo mv kustomize /usr/local/bin/
+          kustomize version
+
+      - name: Configure kubectl for EKS
+        run: |
+          set -euo pipefail
+          aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
+
+      - name: Set image in kustomize (prod)
+        working-directory: k8s/overlays/prod
+        env:
+          IMAGE_SHA: ${{ env.ECR_REPO }}:${{ github.sha }}
+        run: |
+          set -euo pipefail
+          echo "Setting image to: $IMAGE_SHA"
+          kustomize edit set image app="$IMAGE_SHA"
+          kustomize build . | tee /tmp/manifest.yaml
+
+      - name: Apply to cluster (prod overlay)
+        run: |
+          set -euo pipefail
+          kubectl apply -k k8s/overlays/prod
+
+      - name: Confirm image on cluster
+        run: |
+          set -euo pipefail
+          IMG=$(kubectl -n hello get deploy hello-web -o jsonpath='{.spec.template.spec.containers[0].image}')
+          echo "Deployment image: $IMG"
+
+      - name: Wait for rollout (5 minutes)
+        run: |
+          set -euo pipefail
+          kubectl -n hello rollout status deploy/hello-web --timeout=300s
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          set -euo pipefail
+          echo "--- DEPLOYMENT ---"
+          kubectl -n hello get deploy hello-web -o wide || true
+          kubectl -n hello describe deploy hello-web || true
+          echo "--- REPLICASETS ---"
+          kubectl -n hello get rs -l app=hello-web -o wide || true
+          echo "--- PODS ---"
+          kubectl -n hello get pods -l app=hello-web -o wide || true
+          POD=$(kubectl -n hello get pods -l app=hello-web -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)
+          if [ -n "$POD" ]; then
+            echo "--- DESCRIBE POD $POD ---"
+            kubectl -n hello describe pod "$POD" | sed -n '1,200p' || true
+            echo "--- LOGS (last 200 lines) ---"
+            kubectl -n hello logs "$POD" --all-containers --tail=200 || true
+          fi
+          echo "--- EVENTS ---"
+          kubectl -n hello get events --sort-by=.lastTimestamp | tail -n 50 || true
