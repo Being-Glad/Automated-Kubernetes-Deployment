@@ -80,7 +80,7 @@ jobs:
       - name: Install Kustomize (official script)
         run: |
           set -euo pipefail
-          VER="v5.4.3"
+          VER="v5.4.2"
           curl -fsSL https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh -o /tmp/install_kustomize.sh
           bash /tmp/install_kustomize.sh "${VER}"
           sudo mv kustomize /usr/local/bin/
