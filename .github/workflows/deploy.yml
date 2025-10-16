@@ -83,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           VER="v5.4.3"
-          url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${VER}/kustomize_${VER#v}_linux_amd64.tar.gz"
+          url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/${VER}/kustomize_${VER#v}_linux_amd64.tar.gz"
           echo "Downloading $url"
           curl -sSL "$url" -o /tmp/kustomize.tgz
           sudo tar -C /usr/local/bin -xzf /tmp/kustomize.tgz kustomize
