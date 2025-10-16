@@ -4,7 +4,6 @@ namespace: hello
 resources:
   - ../../base
 images:
-  # This entry will be edited by CI with `kustomize edit set image app=<ECR>:<SHA>`
   - name: app
     newName: app
     newTag: latest
