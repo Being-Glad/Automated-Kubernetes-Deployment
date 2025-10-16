@@ -70,7 +70,7 @@ jobs:
       - name: Apply Kustomize overlay with new image
         working-directory: k8s/overlays/prod
         run: |
-          kustomize edit set image <IMAGE_REPOSITORY>=${{ steps.img.outputs.IMAGE_URI }}
+          kustomize edit set image "<IMAGE_REPOSITORY>"=${{ steps.img.outputs.IMAGE_URI }}
           kustomize build | kubectl apply -f -
 
       - name: Wait for rollout
