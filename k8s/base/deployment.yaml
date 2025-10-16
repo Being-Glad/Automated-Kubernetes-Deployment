@@ -6,9 +6,6 @@ metadata:
     app: hello-web
 spec:
   replicas: 1
-  revisionHistoryLimit: 2
-  strategy:
-    type: RollingUpdate
   selector:
     matchLabels:
       app: hello-web
@@ -31,10 +28,10 @@ spec:
             httpGet:
               path: /
               port: 8080
-            initialDelaySeconds: 3
+            initialDelaySeconds: 2
             periodSeconds: 5
             timeoutSeconds: 2
-            failureThreshold: 12
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /
@@ -42,10 +39,4 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 1
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
+            failureThreshold: 3

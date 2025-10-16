@@ -5,5 +5,5 @@ resources:
   - ../../base
 images:
   - name: app
-    newName: app
+    newName: 630398150656.dkr.ecr.ap-south-1.amazonaws.com/hello-eks
     newTag: latest
