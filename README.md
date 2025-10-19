@@ -21,7 +21,6 @@ It satisfies all the requirements of the given take-home task:
 ---
 
 ## 🗂 Repository Structure
-
 .
 ├── app/ # Flask web application
 │ ├── Dockerfile # Docker build definition
@@ -42,10 +41,6 @@ It satisfies all the requirements of the given take-home task:
 │
 └── README.md
 
-yaml
-Copy code
-
----
 
 ## 🌐 Live Demo
 
